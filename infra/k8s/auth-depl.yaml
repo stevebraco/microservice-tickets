@@ -1,0 +1,85 @@
+# ================================
+# 📌 Définition du Deployment
+# ================================
+apiVersion: apps/v1 # Spécifie la version de l'API Kubernetes utilisée pour les Deployments.
+kind: Deployment # Indique que nous définissons un Deployment (gère la création et la mise à jour des Pods).
+
+metadata:
+  name: auth-depl # Nom du Deployment, utilisé pour l'identifier dans le cluster.
+
+spec:
+  replicas: 1 # Nombre de Pods identiques à exécuter (ici, un seul Pod).
+
+  selector:
+    matchLabels:
+      app: auth # Sélectionne les Pods qui ont le label "app: auth" pour les gérer avec ce Deployment.
+
+  template: # Modèle utilisé pour créer les Pods.
+    metadata:
+      labels:
+        app: auth # Assigne le label "app: auth" aux Pods créés pour qu'ils soient sélectionnés correctement.
+
+    spec:
+      containers:
+        - name: auth # Nom du conteneur (utile pour le monitoring et la gestion).
+          image: elbraco/auth # Image Docker utilisée pour ce conteneur (doit être disponible sur Docker Hub ou un registre privé).
+          # ⚠️ Assurez-vous que l'image "elbraco/auth" est bien disponible pour éviter les erreurs de déploiement.
+          env:
+            - name: JWT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: JWT_KEY
+---
+# ================================
+# 📌 Définition du Service
+# ================================
+apiVersion: v1 # Spécifie que nous définissons un Service Kubernetes.
+kind: Service # Indique que nous créons un Service pour exposer le Pod.
+
+metadata:
+  name: auth-srv # Nom du Service, utilisé pour l'identifier dans le cluster.
+
+spec:
+  selector:
+    app: auth # Associe ce Service aux Pods ayant le label "app: auth" (créés par le Deployment ci-dessus).
+
+  ports:
+    - name: auth # Nom du port (facultatif, utile pour le monitoring et l'organisation).
+      protocol: TCP # Utilisation du protocole TCP (par défaut pour HTTP).
+      port: 3000 # Port exposé par le Service (autres services du cluster peuvent l'utiliser pour accéder à auth).
+      targetPort: 3000 # Port sur lequel l’application écoute à l’intérieur du Pod.
+
+# ================================
+# 📖 Explication du fonctionnement
+# ================================
+
+# Ce fichier YAML définit deux objets dans Kubernetes :
+# 1️⃣ Un **Deployment** (`auth-depl`) qui crée et gère un Pod avec un conteneur basé sur `elbraco/auth`.
+# 2️⃣ Un **Service** (`auth-srv`) qui expose le Pod et permet aux autres services du cluster d’y accéder via `auth-srv:3000`.
+
+# 🚀 Fonctionnement :
+# - Le Deployment assure que le Pod "auth" est toujours en cours d'exécution.
+# - Si le Pod crash, Kubernetes le recrée automatiquement.
+# - Le Service agit comme un point d'entrée stable pour communiquer avec l'application d'authentification.
+# - Les autres services du cluster peuvent contacter l'authentification via `http://auth-srv:3000` sans se soucier de l'IP du Pod.
+
+# 🔗 Exemple de requête :
+# - Un autre service peut appeler l’authentification avec `curl http://auth-srv:3000/login`.
+
+# 🔥 Avantages :
+# ✅ Le Service garantit une communication stable même si les Pods redémarrent.
+# ✅ Si `replicas: 1` est augmenté, Kubernetes équilibrera automatiquement la charge entre les Pods.
+# ✅ Kubernetes gère la haute disponibilité et le redémarrage automatique en cas de crash.
+
+# 🛠️ Prochaine étape :
+# - Tester le déploiement avec `kubectl apply -f auth.yaml`
+# - Vérifier que le Pod tourne avec `kubectl get pods`
+# - Vérifier que le Service est accessible avec `kubectl get services`
+
+# Client (Navigateur, API)
+#    → Requête HTTP vers "tickets.dev/api/users/login"
+#    → Ingress Controller (nginx)
+#    → Service "auth-srv"
+#    → Pod "auth" (conteneur elbraco/auth)
+#    → Réponse retournée au client

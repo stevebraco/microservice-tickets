@@ -1,0 +1,19 @@
+apiVersion: skaffold/v2beta28
+kind: Config
+build:
+  local:
+    push: false # Assure-toi que l'image ne sera pas poussée dans un registre distant
+  artifacts:
+    - image: elbraco/auth # Nom de l'image Docker
+      context: auth # Répertoire contenant le Dockerfile
+      docker:
+        dockerfile: Dockerfile # Fichier Dockerfile
+      sync:
+        manual:
+          - src: 'src/**/*.ts' # Fichiers source TypeScript à synchroniser
+            dest: '.' # Répertoire de destination dans le conteneur
+deploy:
+  statusCheckDeadlineSeconds: 60 # Délai d'attente avant que Skaffold arrête de vérifier l'état du déploiement
+  kubectl:
+    manifests:
+      - ./infra/k8s/* # Emplacement des fichiers de manifeste Kubernetes

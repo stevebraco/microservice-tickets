@@ -1,0 +1,42 @@
+apiVersion: networking.k8s.io/v1  # Spécifie la version de l'API Kubernetes utilisée pour Ingress.
+kind: Ingress  # Indique qu'on définit une ressource de type Ingress.
+
+metadata:
+  name: ingress-service  # Nom de l'Ingress, utilisé pour l'identifier dans le cluster.
+  annotations:
+    ingressClassName: nginx  # Spécifie que l'on utilise le contrôleur Ingress basé sur NGINX.
+    nginx.ingress.kubernetes.io/use-regex: 'true'  # Active l'utilisation des expressions régulières dans les chemins.
+    # nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: tickets.dev  # Spécifie que cet Ingress est actif pour le domaine "tickets.dev".
+    http:
+      paths:
+      - pathType: Prefix  # Définit le type de correspondance du chemin (Prefix = commence par).
+        path: /api/users/  # Capture toutes les routes sous "/api/users/", ex: /api/users/login, /api/users/signup
+        backend:
+          service:
+            name: auth-srv  # Redirige les requêtes vers le service Kubernetes nommé "auth-srv".
+            port: 
+              number: 3000  # Le service "auth-srv" écoute sur le port 3000.
+
+# ===========================
+# 📌 EXPLICATION DU FONCTIONNEMENT
+# ===========================
+
+# Cet Ingress permet d'exposer le service "auth-srv" sous le domaine "tickets.dev".
+# Toute requête commençant par "/api/users/" sera envoyée au service "auth-srv" sur le port 3000.
+
+# 🎯 Exemple de requêtes et leur redirection :
+# - `GET tickets.dev/api/users/login`   → `auth-srv:3000/api/users/login`
+# - `POST tickets.dev/api/users/signup` → `auth-srv:3000/api/users/signup`
+# - `GET tickets.dev/api/orders/123`    ❌ (pas pris en charge par cet Ingress)
+
+# 🛠️ Pourquoi utiliser Ingress ?
+# ✅ Centralise l'accès aux services via un domaine unique.
+# ✅ Évite d'exposer chaque service avec un LoadBalancer ou un NodePort.
+# ✅ Facilite la configuration de la sécurité (SSL, Auth, etc.).
+# ✅ Optimise la gestion du trafic HTTP avec un contrôleur comme NGINX.
+
+# 🔗 Schéma du flux des requêtes :
+# Client (navigateur, app) → Ingress Controller (NGINX) → Service Kubernetes → Pod (Application)
