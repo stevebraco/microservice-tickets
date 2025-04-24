@@ -12,6 +12,14 @@ build:
         manual:
           - src: 'src/**/*.ts' # Fichiers source TypeScript à synchroniser
             dest: '.' # Répertoire de destination dans le conteneur
+    - image: elbraco/client # Nom de l'image Docker
+      context: client # Répertoire contenant le Dockerfile
+      docker:
+        dockerfile: Dockerfile # Fichier Dockerfile
+      sync:
+        manual:
+          - src: 'app/**' # Fichiers source TypeScript à synchroniser
+            dest: '.' # Répertoire de destination dans le conteneur
 deploy:
   statusCheckDeadlineSeconds: 60 # Délai d'attente avant que Skaffold arrête de vérifier l'état du déploiement
   kubectl:
